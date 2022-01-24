@@ -1,0 +1,48 @@
+# rangeg
+[] 移动父文件夹
+o 选择排序方式
+shift+s  退回终端，路径为当前路径
+i = Display file (useful if you'd like to view a text file in a pager instead of editing it)
+r = Open file with… (allows you to choose program to use)
+zh = View hidden files
+cw = Rename current file
+
+Tabbed Browsing
+Ranger also incorporates tabbed functionality to allow multiple viewports into the filesystem. Here are the most common tab control keys:
+
+-<ctrl>-n = Create new tab
+-<ctrl>-w = Close current tab
+-<tab> = Next tab
+-<shift><tab> = Previous tab
+
+#Command Interface
+! = Execute a command from the shell (non-ranger commands)
+: = Execute a ranger command
+du = Measure disk usage of current directory
+chmod = Change permissions of current file
+There are a number of flags that you can pass to commands to modify the operation of the commands. They should be used with a dash "-" after typing "!" for shell commands or ":" for ranger commands:
+
+-s = Discard the output of the current command.
+-d = Detach the process and run in the background
+-p = Return the output in ranger's file pager
+-w = Do not return immediately after command execution. Hang until "Enter" is pressed
+-c = Perform command on current file, not the selected files
+Ranger also allows you to target specific files by substituting groups of files for command operations. It accomplishes that by using placeholders that will be expanded with the correct files upon execution:
+
+%s = Substitute currently selected files
+For example, if we wanted to change the names of multiple files, we could select them all with the space bar. After that, we can type:
+
+:bulkrename %s
+This is a great way to rename multiple files. It gives you every file you'd like to change in a text editor. You simply modify as necessary and then exit out. The file manager will perform your changes when after you confirm.
+
+
+
+#rg
+```
+rg 'fn write\('
+rg 'fast\s' README.md
+rg clap -g '*.toml'
+rg clap -g '!*.toml'
+rg 'fn run' -trust  
+-t means "include files of this type" where as -T means "exclude files of this type."
+```
