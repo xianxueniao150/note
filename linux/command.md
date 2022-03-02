@@ -77,11 +77,14 @@ date -r 1460710262 "+%Y-%m-%d %H:%M:%S"
 
 minikube start --image-repository registry.cn-hangzhou.aliyuncs.com/google_containers
 
-curl
+## curl
 -L 参数会让 HTTP 请求跟随服务器的重定向
 -v 详细输出，包含请求和响应的首部
 
-grep
+添加json
+curl -X POST -H "Content-Type:application/json" --data '{"dmac": "00:0C:29:EA:39:70"}' https://cms-api-qa.vvork.net/audit/callback
+
+## grep
 
 * 和 + 限定符都是贪婪的，因为它们会尽可能多的匹配文字，只要在它们的后面加上一个?就可以实现懒惰或最小匹配
   grep -oP "app:.*?;"

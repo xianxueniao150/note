@@ -28,7 +28,6 @@ func main() {
 map[小明:100 张三:90]
 100
 type of a:map[string]int
-
 ```
 
 
