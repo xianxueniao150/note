@@ -19,3 +19,5 @@ Ctrl + w删除从光标位置前到当前所处单词（Word）的开头
 sudo chflags nohidden opt
 ```
 
+## 谷歌页面强制刷新
+mac 强制刷新：command+shift+r
