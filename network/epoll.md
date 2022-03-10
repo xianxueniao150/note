@@ -81,7 +81,7 @@ https://www.cnblogs.com/skyfsm/p/7102367.html
 
 ### 基础API
 #### 创建epfd(相当于创建红黑树的根节点)
-```
+```cpp
 //the size argument is ignored, but must be greater than zero
 //创建一个epoll的句柄,在使用完epoll后，必须调用close()关闭
 //调用成功返回一个非负值的 epollfd，调用失败返回 -1
@@ -90,7 +90,7 @@ int epoll_create(int size);
 
 
 #### 控制EPOLL(相当于在红黑树上进行crud)
-```
+```cpp
 //epoll的事件注册函数,op表示执行什么操作，fd表示监听哪个文件，event会告诉内核需要监听的事件,event会保存在红黑树节点当中，最终返回给用户
 //调用成功返回 0，调用失败返回 -1，你可以通过 errno 错误码获取具体的错误原因。
 int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);
@@ -119,9 +119,27 @@ EPOLLERR    //表示对应的文件描述符发生错误；
 EPOLLET     //将EPOLL设为边缘触发(Edge Triggered)模式,即重复触发
 ```
 
+## EPOLLRDHUP (since Linux 2.6.17)
+Stream socket peer closed connection, or shut down writing
+half of connection.  (This flag is especially useful for
+writing simple code to detect peer shutdown when using
+edge-triggered monitoring.)
+EPOLLRDHUP实测在对端关闭时会触发，需要注意的是：
+对EPOLLRDHUP的处理应该放在EPOLLIN和EPOLLOUT前面，处理方式应该 是close掉相应的fd后，作其他应用层的清理动作；
+EPOLLRDHUP想要被触发，需要显式地在epoll_ctl调用时设置在events中；
+
+#### EPOLLONESHOT
+在并发程序中，譬如当epoll_wait已经检测到socket描述符fd1，并通知应用程序处理fd1的数据，那么处理过程中该fd1又有新的数据可读，会唤醒其他线程对fd1进行操作，
+那么就出现了两个工作线程同时处理fd1的情况，这当然不是我们期望看到的。
+the caller has the option to specify the EPOLLONESHOT flag, to tell epoll to
+disable the associated file descriptor after the receipt of an event with epoll_wait(2).  When the EPOLLONESHOT flag is
+specified, it is the caller's responsibility to rearm the file descriptor using epoll_ctl(2) with EPOLL_CTL_MOD.
+
+
+?前面说过LT会不断触发，所以在处理数据时，不需要在RECV时不断的循环去读一直读到EAGAIN，但如果设置了EPOLLONESHOT后，也得如此办理，否则，就可能会丢掉数据。
 
 等待EPOLL
-```
+```cpp
 //等待事件的到来，如果检测到事件，就将所有就绪的事件从内核事件表中复制到它的第二个参数events指向的数组
 //存疑？ maxevents 告知内核这个events有多大, 注意: 值 不能大于创建epoll_create()时的size.
 //timeout 是超时时间，单位是毫秒，如果设置为 0，epoll_wait 会立即返回

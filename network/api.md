@@ -136,3 +136,7 @@ int getsockopt(int sockfd, int level, int optname,
 int setsockopt(int sockfd, int level, int optname,
               const void *optval, socklen_t optlen);
 ```
+
+## EINTR
+表示某种阻塞的操作，被接收到的信号中断，造成的一种错误返回值。
+我们经常在网络编程中会看到这样，当执行一个可能会阻塞的系统调用后，在返回的时候需要检查下错误码（if errno == EINTR），如果是这样的错误，那我们一般会重新执行该系统调用。
