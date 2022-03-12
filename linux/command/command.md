@@ -93,6 +93,8 @@ cat access.log | grep -v '"time":0.0'
 
 while true; do ; sleep 1;done
 
+pgrep -f a.out //直接输出对应程序的进程号
+
 test
 
 1. find
