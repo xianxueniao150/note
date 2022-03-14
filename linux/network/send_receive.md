@@ -5,15 +5,19 @@ ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
               const struct sockaddr *dest_addr, socklen_t addrlen);
 
 dest_addr 指定了发送的目的地，对于TCP来说不用指定，指定也会被忽略
+
 ERRORS：
 EMSGSIZE：UDP单次发送数据超过最大字节限制，则会引发这个错误
 ```
+当套接字发送缓冲区变满时，send通常会阻塞，除非套接字设置为非阻塞模式，当缓冲区变满时，返回EAGAIN或者EWOULDBLOCK错误，此时可以调用select函数来监视何时可以发送数据。
+
 
 ## recv
 读取数据
 ```cpp
-ssize_t recv(int sockfd, void *buf, size_t len, int flags);
+#include <sys/socket.h>
 
+ssize_t recv(int sockfd, void *buf, size_t len, int flags);
 ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
                 struct sockaddr *src_addr, socklen_t *addrlen);
 

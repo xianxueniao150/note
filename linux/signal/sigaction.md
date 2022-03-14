@@ -26,14 +26,20 @@ struct sigaction
 
 ### 示例
 ```cpp
-void sig_handler( int sig )
+//信号处理函数
+void sig_handler(int sig)
 {
+    //为保证函数的可重入性，保留原来的errno
+    //可重入性表示中断后再次进入该函数，环境变量与之前相同，不会丢失数据
     int save_errno = errno;
     int msg = sig;
-    send( pipefd[1], &msg, 1, 0 );
+
+    //将信号值从管道写端写入，传输字符类型，而非整型
+    send(pipefd[1], (char *)&msg, 1, 0);
+
+    //将原来的errno赋值为当前的errno
     errno = save_errno;
 }
-
 void addsig( int sig )
 {
     struct sigaction sa;

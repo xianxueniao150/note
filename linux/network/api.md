@@ -115,19 +115,6 @@ ERRORS：
 EMSGSIZE：UDP单次发送数据超过最大字节限制，则会引发这个错误
 ```
 
-## recv
-读取数据
-```cpp
-ssize_t recv(int sockfd, void *buf, size_t len, int flags);
-
-ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
-                struct sockaddr *src_addr, socklen_t *addrlen);
-
-len指定要读取的字节个数，如果实际收到的大于它就会被截断，所以通常需要循环读取
-返回值表示实际读取多少个字节，
-recvfrom可以额外记录从哪读的
-```
-send 和 recv 函数的各种返回值意义
 
 ## Socket Option
 ```cpp

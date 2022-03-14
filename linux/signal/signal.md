@@ -44,39 +44,62 @@ ubuntu@VM-12-3-ubuntu:~/projects/kernel_test/net_test$ ./a.out
 *
 ^C!
 *
-^C!
 ```
+^C!
 
 信号会打断阻塞的系统调用
 上例，如果一直按着Ctrl+c的话，还是会输出10个"*"，但是程序不会运行10s，很快就结束了
 
 
+## 信号通知流程
+Linux下的信号采用的异步处理机制，信号处理函数和当前进程是两条不同的执行路线。
+具体的，当进程收到信号时，操作系统会中断进程当前的正常流程，转而进入信号处理函数执行操作，完成后再返回中断的地方继续执行。
+
+为避免信号竞态现象发生，信号处理期间系统不会再次触发它。所以，为确保该信号不被屏蔽太久，信号处理函数需要尽可能快地执行完毕。
+
+这里的解决方案是，信号处理函数仅仅发送信号通知程序主循环，将信号对应的处理逻辑放在程序主循环中，由主循环执行信号对应的逻辑代码。
+
+
 ## 常用函数
 
 ### 发信号
-#### kill
-```sh
+#### kill 给任意进程或进程组发送任意信号
+```c
+//成功返回0，失败返回-1，错误值在errno中
 int kill(pid_t pid, int sig);
 ```
-The kill() system call cn be used to send any signal to any process group or process.
 
        If pid is positive, then signal sig is sent to the process with the ID specified by pid.
        If pid equals 0, then sig is sent to every process in the process group of the calling process.
        If pid equals -1, then sig is sent to every process for which the calling process has permission to send signals, except for process 1 (init), but see below.
        If pid is less than -1, then sig is sent to every process in the process group whose ID is -pid.
-	   
-#### raise
-向自己发信号
+
+#### sigqueue 给任意进程发送任意信号，并且可以传递数据
+只能发送给一个进程，不能发送给进程组
+```cpp
+int sigqueue(pid_t pid, int sig, const union sigval value);
+
+union sigval {
+     int sival_int;
+     void *sival_ptr;
+};
+```
+
+
+#### raise 给本进程或线程发送任意信号
 ```sh
 int raise(int sig);
 ```
-The raise() function sends a signal to the calling process or thread
+1.在单线程程序中等价于kill(getpid(), sig);
+2.在多线程程序中等价于pthread_kill(pthread_self(), sig);
+3.该函数会在信号处理函数执行完成后返回
 
-#### alarm
+#### alarm 在seconds秒后给本进程发送SIGALRM信号
 ```cpp
+//如果以前没有设置过alarm或者已经超时，那么返回0, 如果以前设置过alarm，那就返回剩余的时间，并且重新设定定时器
+//若seconds=0，则任何未决的alarm都会被取消
 unsigned int alarm(unsigned int seconds);
 ```
-alarm() arranges for a SIGALRM signal to be delivered to the calling process in seconds seconds.
 
 ```cpp
 #include <stdio.h>
@@ -92,15 +115,28 @@ int main(){
 ```
 
 ```sh
-ubuntu@VM-12-3-ubuntu:~/projects/kernel_test/net_test$ ./a.out 
+$ ./a.out 
 Alarm clock
 ```
 
+#### abort 给本进程发送SIGABRT信号
+```cpp
+void abort(void);
+```
+1.该函数先解除对SIGABRT信号的屏蔽
+2.不论该信号被屏蔽或是注册了信号处理函数，它总会终止进程，该函数通过回复SIGABRT的默认配置然后再次发出该信号来完成此操作。（除非你未从信号处理函数返回（see longjump）
+
+### 进程对信号的响应
+忽略信号	即对信号不做任何处理，其中SIGKILL和SIGSTOP不可忽略
+捕捉信号	信定义信号处理函数，当信号发生时执行相应的处理函数
+缺省操作	执行信号默认的缺省操作，其中实时信号的缺省操作是进程终止
+
+
 ### 信号处理函数
-目标进程在接收到信号后，需要设定信号处理函数
-#### signal
-```sh
-#signal函数成功时返回一个 _sighandler_类型的函数指针,返回旧的__handler。出错返回 SIG_ERR，并设置 errno。
+#### signal 注册简单的信号处理函数
+```c
+//signal函数成功时返回一个 _sighandler_类型的函数指针,返回旧的__handler。出错返回 SIG_ERR，并设置 errno。
+//注意：SIGKILL和SIGSTOP不可注册处理函数
 __sighandler_t signal (int __sig, __sighandler_t __handler)
 
 typedef void (*__sighandler_t) (int);
@@ -135,6 +171,20 @@ struct sigaction
 
   };
   
+```
+
+#### sa_sigaction 参数信号处理函数
+void (*sa_sigaction)(int, siginfo_t *, void *);
+```cpp
+//参数：sig，info，ucontext
+//sig是信号值，第三个参数未使用，info参数结构体定义如下：
+typedef struct {
+    int si_signo;
+    int si_errno;           
+    int si_code;            
+    union sigval si_value;  
+    } siginfo_t;
+//这个结构体中的第四个参数，就是sigqueue给信号传递的那个结构体了
 ```
 
 ## 信号集
@@ -172,6 +222,28 @@ int sigdelset(sigset_t *set, int signum);
 //以上函数成功返回0，失败返回-1
 ```
 
+### 信号阻塞
+每个进程都有一个用来描述哪些信号递送到进程时将被阻塞的信号集，该信号集中的所有信号在递送到进程后都将被阻塞
+
+```cpp
+//根据how参数来对信号集进行对应的操作:
+//SIG_BLOCK：在进程当前屏蔽信号集中添加set指向信号集中的信号
+//SIG_UNBLOCK：如果进程屏蔽信号集中包含set指向信号集中的信号，则解除对该信号的阻塞
+//SIG_SETMASK：更新进程屏蔽信号集为set指向的信号集
+
+//若oldset不为NULL，则将旧的信号阻塞集通过该参数返回
+int sigprocmask(int how, const sigset_t *set, sigset_t *oldset);
+
+//获得当前进程的未决信号队列
+int sigpending(sigset_t *set);
+
+//挂起线程且暂时使用mask代替当前信号阻塞集，直到信号到达
+//1.若信号的处理是终止进程，则该函数不返回
+//2.若注册了信号处理函数，则待信号处理函数执行完毕后，该函数再返回
+int sigsuspend(const sigset_t *mask);
+
+//以上函数成功返回0，失败返回错误码
+```
 
 
 
@@ -201,45 +273,13 @@ struct timeval {
 };                
 
 
-## 信号表
-在终端，可通过kill -l查看所有的signal信号
-
-取值	名称	解释	默认动作
-1	SIGHUP	挂起	 
-2	SIGINT	中断	 
-3	SIGQUIT	退出	 
-4	SIGILL	非法指令	 
-5	SIGTRAP	断点或陷阱指令	 
-6	SIGABRT	abort发出的信号	 
-7	SIGBUS	非法内存访问	 
-8	SIGFPE	浮点异常	 
-9	SIGKILL	kill信号	不能被忽略、处理和阻塞
-10	SIGUSR1	用户信号1	 
-11	SIGSEGV	无效内存访问	 
-12	SIGUSR2	用户信号2	 
-13	SIGPIPE	管道破损，没有读端的管道写数据	 
-14	SIGALRM	alarm发出的信号	 
-15	SIGTERM	终止信号	 
-16	SIGSTKFLT	栈溢出	 
-17	SIGCHLD	子进程退出	默认忽略
-18	SIGCONT	进程继续	 
-19	SIGSTOP	进程停止	不能被忽略、处理和阻塞
-20	SIGTSTP	进程停止	 
-21	SIGTTIN	进程停止，后台进程从终端读数据时	 
-22	SIGTTOU	进程停止，后台进程想终端写数据时	 
-23	SIGURG	I/O有紧急数据到达当前进程	默认忽略
-24	SIGXCPU	进程的CPU时间片到期	 
-25	SIGXFSZ	文件大小的超出上限	 
-26	SIGVTALRM	虚拟时钟超时	 
-27	SIGPROF	profile时钟超时	 
-28	SIGWINCH	窗口大小改变	默认忽略
-29	SIGIO	I/O相关	 
-30	SIGPWR	关机	默认忽略
-31	SIGSYS	系统调用异常	 
-
-对于signal信号，绝大部分的默认处理都是终止进程或停止进程，或dump内核映像转储。 上述的31的信号为非实时信号，其他的信号32-64 都是实时信号。
 
 
 ## 可重入函数 
-函数返回值是一个指针的话，指针所指的区域可能是堆，也可能是静态区，如果是堆的话一般有一个配套函数XXclose，如果时静态区的话，有可能第一次调用还没用返回值，第二次调用就改变了返回值，这种函数就是不可重入的
 所有的系统调用都是可重入的，一部分库函数也是可重入的
+如何编写可重入函数：
+1. 不使用（返回）静态的数据、全局变量（除非用信号量互斥）。
+2. 不调用动态内存分配、释放的函数。
+3. 不调用任何不可重入的函数（如标准I/O函数）
+
+	即使信号处理函数使用的都是可重入函数（常见的可重入函数），也要注意进入处理函数时，首先要保存errno的值，结束时，再恢复原值。因为，信号处理过程中，errno值随时可能被改变。
