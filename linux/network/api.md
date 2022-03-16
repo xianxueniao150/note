@@ -93,37 +93,91 @@ addrlen:
 ```
 
 
-## connect函数
+## connect函数 发起连接
 ```cpp
+// sockfd 由socket系统调用返回一个socket
+// addr: 指定对端地址信息，含IP地址和端口号
+//成功则返回0，失败返回-1，错误原因存于errno中。
 int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
 
-addr:
-传入参数，指定对端地址信息，含IP地址和端口号
 ```
+一但成功建立连接,sockfd就唯一的标识了这个连接,客户端就可以通过读写sockfd来与服务端通信
+
+常见errno
+ECONNREFUSED 目标端口不存在,连接被拒绝。
+ETIMEDOUT 连接超时。
 
 udp协议也可以调用，调用之后，就可以使用send函数向对端发送数据，而不用指定目的地了
 
 
-## send
+## close 关闭连接
 ```cpp
-ssize_t send(int sockfd, const void *buf, size_t len, int flags);
-ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
-              const struct sockaddr *dest_addr, socklen_t addrlen);
-
-dest_addr 指定了发送的目的地，对于TCP来说不用指定，指定也会被忽略
-ERRORS：
-EMSGSIZE：UDP单次发送数据超过最大字节限制，则会引发这个错误
+#include <unistd.h>
+int close(int sockfd)
 ```
+close 系统调用并非总是立即关闭一个连接,而是将sockfd的引用计数减1,只有当sockfd的引用计数为0时,才真正关闭连接.
+多进程程序中一次fork系统调用默认将父进程中打开的socket的引用计数加1，因此我们必须在父进程和子进程中都对该socket执行close调用才能将连接关闭。
+
+## shutdown 关闭连接
+如果要立即终止连接，而不是引用计数减一，使用shutdown。(专为网络编程设计)
+```cpp
+#include<sys/socket.h>
+// 成功返回1，失败返回-1并设置errno
+int shutdown(int sockfd,int howto);
+```
+howto: 
+	SHUT_RD，只关闭读，接收缓冲区数据全部丢弃；
+	SHUT_WR，关闭写，程序不能继续写，缓冲区数据会发送完，此时处于半连接状态；
+	SHUT_RDWR，同时关闭读写。
+
 
 
 ## Socket Option
 ```cpp
-int getsockopt(int sockfd, int level, int optname,
-                      void *optval, socklen_t *optlen);
-int setsockopt(int sockfd, int level, int optname,
-              const void *optval, socklen_t optlen);
+#include <sys/socket.h>
+// level指定操作哪个协议的选项
+// option_name指定选项的名字
+// option_value、option_len是选项操作的值和长度
+// 成功时返回0，失败返回-1并设置errno
+int getsockopt(int sockfd, int level, int optname, void *restrict optval, socklen_t *restrict optlen);
+int setsockopt(int sockfd, int level, int optname, const void *optval, socklen_t optlen);
+```
+对服务器而言，有些socket选项只能在listen系统调用前针对socket设置才有效
+对监听socket设置socket选项，则accept返回的链接socket将自动继承这些选项
+
+### SO_REUSEADDR选项
+  通过SO_RESUSEADDR选项可以强制使用被处于TIME_WAIT状态的链接占用的socket地址
+```cpp
+int reuse = 1;
+setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
 ```
 
+5.11.2 SO_RCVBUF和SO_SNDBUF选项
+  SO_RCVBUF和SO_SNDBUF选项分别表示TCP接收缓冲区和发送缓冲区的大小，可确保TCP连接拥有足够的空闲缓冲区来处理拥塞。
+
+5.11.3 SO_RCVLOWAT和SO_SNDLOWAT选项
+  SO_RCVLOWAT和SO_SNDLOWAT选项分别表示TCP接收缓冲区和发送缓冲区的低水位标记，其默认为1。一般被IO复用系统调用时判断socket是否刻度或可写。
+
+5.11.4 SO_LINGER选项
+  SO_LINGER选项用于控制close系统调用在关闭TCP连接时的行为，当设置SO_LINGER值时，会将setsockopt系统调用传递给linger结构体
+
+#include <sys/socket.h>
+struct linger{
+    int l_onoff;            // 开启或关闭该选项
+    int l_linger;           // 留置时间
+};
+1
+2
+3
+4
+5
+l_onoff == 0：该选项不起作用。
+l_onoff != 0, l_linger == 0：close系统调用立即返回，TCP模块丢弃被关闭的socket对应的TCP缓冲区残留数据，并给对方发送一个复位报文段。此方法给服务器提供了异常终止的连接方法。
+l_onoff != 0， l_linger>0：阻塞的socket，close等待l_linger的时间，知道TCP模块发送完所有的残留数据并得到对方确认，若未得到返回-1并设置errno；非阻塞的socket，close立即返回，根据返回值和errno怕段擦流数据是否已经发送完毕。
+
+————————————————
+版权声明：本文为CSDN博主「甄姬、巴豆」的原创文章，遵循CC 4.0 BY-SA版权协议，转载请附上原文出处链接及本声明。
+原文链接：https://blog.csdn.net/weixin_46267443/article/details/120722283
 ## EINTR
 表示某种阻塞的操作，被接收到的信号中断，造成的一种错误返回值。
 我们经常在网络编程中会看到这样，当执行一个可能会阻塞的系统调用后，在返回的时候需要检查下错误码（if errno == EINTR），如果是这样的错误，那我们一般会重新执行该系统调用。

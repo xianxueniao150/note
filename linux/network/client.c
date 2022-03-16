@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
 			printf("Message form server: %s\n", buffer);
 		}
 		//关闭套接字
-		close(sock);
+		/* close(sock); */
 		return 0;
 	}
 

@@ -1,59 +1,41 @@
-server.c
-```cpp
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <ctype.h>
-
-#define MAXLINE 80
-#define SERV_PORT 6666
-
-int main(void){
-
-    struct sockaddr_in servaddr,cliaddr;
-	socklen_t cliaddr_len;
-	int listenfd, connfd;
-	char buf[MAXLINE];
-	char str[INET_ADDRSTRLEN];
-	int i, n;
-
-	listenfd = socket(AF_INET, SOCK_STREAM, 0);
-
-//	bzero(&servaddr, sizeof(servaddr));
-	servaddr.sin_family = AF_INET;
-	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);  //INADDR_ANY 宏，编译器会自动转换成本地任意一个可用的ip
-	servaddr.sin_port = htons(SERV_PORT);
-
-	bind(listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr));
-	listen(listenfd, 20);
-
-	printf("Accepting connections ...\n");
-	
-   cliaddr_len = sizeof(cliaddr);  //必须先初始化
-	connfd = accept(listenfd, (struct sockaddr *)&cliaddr, &cliaddr_len);
-	while (1) {
-		n = read(connfd, buf, MAXLINE);
-		printf("received from %s at PORT %d\n",
-		inet_ntop(AF_INET, &cliaddr.sin_addr, str, sizeof(str)),
-		ntohs(cliaddr.sin_port));
-		for (i = 0; i < n; i++)
-			buf[i] = toupper(buf[i]);
-		write(connfd, buf, n);
-	//	close(connfd);
-	}
-	return 0;
-}
-```
-
-
-用nc命令模拟客户端进行测试
+## TCP 报文段的首部格式
+一个 TCP 报文段分为首部和数据两部分。TCP 报文段首部的前20个字节是固定的，后面有4n字节是根据需要而增加的选项(n是整数)。因此 TCP 首部的最小长度是20字节
 ```sh
-$ nc 127.0.0.1 6666
-hello
-HELLO
+ 0             1               2               3               4
+ 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|          Source Port          |       Destination Port        |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                        Sequence Number                        |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                    Acknowledgment Number                      |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|  Data |           |U|A|P|R|S|F|                               |
+| Offset| Reserved  |R|C|S|S|Y|I|            Window             |
+|       |           |G|K|H|T|N|N|                              |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|           Checksum            |         Urgent Pointer        |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                    Options                    |    Padding    |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                             data                              |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ 
 ```
- 
+
+- 16位端口号（port number）：告知主机该报文段是来自哪里（源端口）以及传给哪个上层协议或应用程序（目的端口）的。进行TCP通信时，客户端通常使用系统自动选择的临时端口号，而服务器则需要自己指定端口号。
+- 32位序号（sequence number）： —次TCP通信（从TCP连接建立到断开）过程中某一个传输方向上的字节流的毎个字节的编号。假设主机A和主机B进行TCP通信，A发送给B的第一个TCP报文段中，序号值被系统初始化为某个随机值ISN （Initial Sequence Number,初始序号值）。那么在该传输方向上（从A到B）,后续的TCP报文段中序号值将被系统设置成ISN加上该报文段所携带数据的第一个字节在整个字节流中的偏移。例如，某个TCP报文段传送的数据是字节流中的第1025〜2048字节，那么该报文段的序号值就是ISN+I025。另外一个传输方向(从B到A)的TCP报文段的序号值也具有相同的含义。
+- 32位确认号(acknowledgement number):用作对另一方发送来的TCP报文段的响应. 其值是收到的TCP报文段的序号值加1.同时也是期望收到对方下一个报文段的第一个数据字节的序号。假设主机A和主机B进行TCP通信，那么A发送出的TCP报文段不仅携带自己的序号，而且包含对B发送来的TCP报文段的确认号。反之，B发送出的TCP报文段也同时携带自己的序号和对A发送来的报文段的确认号。若确认号为n，则证明到序号n-1为止的所有数据都已正确收到
+- 数据偏移： 即头部长度(header length):标识该TCP头部有多少个32bit字(4字节)。因为4位最大能表示15,所以TCP头部最长是60字节。
+- 下面有6个控制位
+	- 紧急 URG(URGent)： 当 URG=1 时，表明紧急指针字段有效。它告诉系统此报文段中有紧急数据，应尽快传送(相当于高优先级的数据)，而不是按原先的排队顺序来传送（作用于发送方(自己)）
+	- 确认 ACK(ACKnowledgment) ：仅当 ACK=1 时确认号字段才有效。TCP 规定，在连接建立后所有传送的报文段都必须把 ACK 置1。ACK 也就是我们所熟悉的ack包，用来告诉对方上一个数据包已经成功收到。不过一般不会为了ack单独发送一个包，都是在下一个要发送的packet里设置ack位
+	- PSH标志，表示接收方尽快交付接收应用进程，不要等到缓存填满再向上交付（作用于接收方（对方）），一般我们在http request的最后一个包里都能看到P位被设置
+	- RST标志，表示要求对方重新建立连接。我们称携带RST标志的TCP报文段为复位 报文段	
+	- SYN标志，表示请求建立一个连接。我们称携带SYN标志的TCP报文段为同步报文段
+	- FIN标志，表示通知对方本端要关闭连接了.我们称携带FIN标志的TCP报文段为结束报文段
+- 16位窗口大小(window size)：是TCP流量控制的一个手段。这里说的窗口，指的是接收窗口(Receiver Window, RWND)。它告诉对方本端的TCP接收缓冲区还能容纳多少字节的数据，这样对方就可以控制发送数据的速度。
+- 16位校验和(TCP checksum)：由发送端填充，接收端对TCP报文段执行CRC算法以检験TCP报文段在传输过程中是否损坏。注意，这个校验不仅包括TCP头部，也包括数据部分.这也是TCP可靠传输的一个重要保障。
+- 16位紧急指针(urgent pointer):是一个正的偏移量。它和序号字段的值相加表示最后一个紧急数据的下一字节的序号。因此，确切地说，这个字段是紧急指针相对当前序号的偏移，不妨称之为紧急偏移。
+- 选项 长度可变，最长可达40字节
+
+

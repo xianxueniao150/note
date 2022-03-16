@@ -1,10 +1,9 @@
+# tcp数据读写
 ## send
 ```cpp
+#include <sys/types.h>
+#include <sys/socket.h>
 ssize_t send(int sockfd, const void *buf, size_t len, int flags);
-ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
-              const struct sockaddr *dest_addr, socklen_t addrlen);
-
-dest_addr 指定了发送的目的地，对于TCP来说不用指定，指定也会被忽略
 
 ERRORS：
 EMSGSIZE：UDP单次发送数据超过最大字节限制，则会引发这个错误
@@ -18,8 +17,6 @@ EMSGSIZE：UDP单次发送数据超过最大字节限制，则会引发这个错
 #include <sys/socket.h>
 
 ssize_t recv(int sockfd, void *buf, size_t len, int flags);
-ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
-                struct sockaddr *src_addr, socklen_t *addrlen);
 
 len指定要读取的字节个数，如果实际收到的大于它就会被截断，所以通常需要循环读取
 返回值表示实际读取多少个字节，
@@ -102,3 +99,41 @@ bool SendData(const char* buf , int buf_length)
 
 结果：根据程序输出可以看到send函数调用成功了，但是tcpdump 抓包结果输出中，除了连接时的三次握手数据包，再也无其他数据包，也就是说，send 函数发送 0 字节数据，client 的协议栈并不会把这些数据发出去。
 因此，server 端也会一直没有输出，如果你用的是 gdb 启动 server，此时中断下来会发现，server 端由于没有数据会一直阻塞在 recv 函数调用处。
+
+# udp数据读写
+UDP是无连接的，读写都需要指定对方地址
+```cpp
+#include <sys/types.h>
+#include <sys/socket.h>
+
+ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
+              const struct sockaddr *dest_addr, socklen_t addrlen);
+ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
+                struct sockaddr *src_addr, socklen_t *addrlen);
+
+```
+dest_addr 指定了发送的目的地，这两个方法也可用于TCP,只需要把最后两个参数设置为NULL,如果指定也会被忽略
+
+# 通用数据读写函数
+```cpp
+#include <sys/socket.h>
+ssize_t recvmsg(int sockfd, struct msghdr* msg, int flags);
+sszie_t sendmsg(int sockfd, struct msghdr* msg, int flags);
+
+// msg参数是msghdr结构体类型的指针
+struct msghdr{
+    void* msg_name;             // socket地址
+    socklen_t msg_namelen;      // socket地址的长度
+    struct iovec* msg_iov;      // 分散的内存块
+    int msg_iovlen;             // 分散内存块的数量
+    void* msg_control;          // 指向辅助数据的起始位置
+    socklen_t msg_controllen;   // 辅助数据的大小
+    int msg_flags;              // 复制函数中的flags参数
+};
+
+struct iovec{
+    void *iov_base;     // 内存起始地址
+    size_t iov_len;     // 这块内存的长度
+};
+```
+
