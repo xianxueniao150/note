@@ -39,3 +39,17 @@
 - 选项 长度可变，最长可达40字节
 
 
+## 网络连接状态详解
+共有12中可能的状态，前面11种是按照TCP连接建立的三次握手和TCP连接断开的四次挥手过程来描述的：
+- LISTEN：首先服务端需要打开一个socket进行监听，状态为 LISTEN，侦听来自远方TCP端口的连接请求 ；
+- SYN_SENT：客户端通过应用程序调用connect进行active open，于是客户端tcp发送一个SYN以请求建立一个连接，之后状态置为 SYN_SENT，在发送连接请求后等待匹配的连接请求；
+- SYN_RECV：服务端应发出ACK确认客户端的 SYN，同时自己向客户端发送一个SYN，之后状态置为，在收到和发送一个连接请求后等待对连接请求的确认；
+- ESTABLISHED：代表一个打开的连接，双方可以进行或已经在数据交互了， 代表一个打开的连接，数据可以传送给用户；
+- FIN_WAIT1：主动关闭(active close)端应用程序调用close，于是其TCP发出FIN请求主动关闭连接，之后进入FIN_WAIT1状态， 等待远程TCP的连接中断请求，或先前的连接中断请求的确认
+- CLOSE_WAIT：被动关闭(passive close)端TCP接到FIN后，就发出ACK以回应FIN请求(它的接收也作为文件结束符传递给上层应用程序)，并进入CLOSE_WAIT， 等待从本地用户发来的连接中断请求；
+- FIN_WAIT2：主动关闭端接到ACK后，就进入了 FIN-WAIT-2，从远程TCP等待连接中断请求；
+- LAST_ACK：被动关闭端一段时间后，接收到文件结束符的应用程 序将调用CLOSE关闭连接，这导致它的TCP也发送一个 FIN,等待对方的ACK.就进入了LAST-ACK，等待原来发向远程TCP的连接中断请求的确认；
+- TIME_WAIT:在主动关闭端接收到FIN后，TCP 就发送ACK包，并进入TIME-WAIT状态，等待足够的时间以确保远程TCP接收到连接中断请求的确认；
+- CLOSING: 比较少见，等待远程TCP对连接中断的确认；
+- CLOSED: 被动关闭端在接受到ACK包后，就进入了closed的状态，连接结束，没有任何连接状态；
+- UNKNOWN：未知的Socket状态；

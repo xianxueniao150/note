@@ -1,5 +1,4 @@
 ## tcpdump
-
 ```sh
 -i : 选择要捕获的接口，通常是以太网卡或无线网卡
 -nn : 单个 n 表示不解析域名，直接显示 IP；两个 n 表示不解析域名和端口。（解析的话就会这样显示:localhost.localdomain.webcache）
@@ -112,7 +111,13 @@ dstat -tnf 1 10    #输出接下来10秒内每秒的网络数据
 ```
 
 ## netstat 查看Linux中网络系统状态信息
+可以看到tcp建立的每一条连接，包括正在尝试建立的
 ```sh
+-t或--tcp：显示TCP传输协议的连线状况；
+-a或--all：显示所有连线中的Socket；
+-n或--numeric：直接使用ip地址，而不通过域名服务器；
+
+
 netstat -rn   #查看网关设置
 ```
 

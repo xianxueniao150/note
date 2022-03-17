@@ -1,78 +1,26 @@
-## socket
-socket()打开一个网络通讯端口，如果成功的话，就像open()一样返回一个文件描述符，应用程序可以像读写文件一样用read/write在网络上收发数据
-协议族（domain）中的一个协议（protocol）对于该种实现方式（type）进行支持
-```cpp
-int socket(int domain, int type, int protocol);
-
-domain(协议族)
-Name                Purpose                          Man page
-AF_UNIX, AF_LOCAL   Local communication              unix(7)
-AF_INET             IPv4 Internet protocols          ip(7)
-AF_INET6            IPv6 Internet protocols          ipv6(7)
-AF_NETLINK          Kernel user interface device     netlink(7)
-AF_PACKET           Low level packet interface       packet(7)
-
-其中AF_INET 这是大多数用来产生socket的协议，使用TCP或UDP来传输，用IPv4的地址
-
-type(实现方式)
-SOCK_STREAM(流式,典型TCP)     Provides sequenced, reliable, two-way, connection-based byte streams. 
-SOCK_DGRAM(报式,典型UDP)      Supports atagrams (connectionless, unreliable messages of a fixed maximum length).
-SOCK_RAW              Provides raw network protocol access
-
-protocol
-    传0 表示使用默认协议
-
-成功：返回指向新创建的socket的文件描述符，失败：返回-1，设置errno
-```
 
 ## bind
 bind()的作用是将参数sockfd和addr绑定在一起，使sockfd这个用于网络通讯的文件描述符监听addr所描述的地址和端口号
 ```cpp
+#include <sys/types.h>
+#include <sys/socket.h>
 int bind(int sockfd, const struct sockaddr *addr,socklen_t addrlen); 
 
 addrlen:sizeof(addr)长度
- 
-sockaddr 每个协议族都有自己的     
-The sockaddr structure is defined as something like:
-
-struct sockaddr {
-   sa_family_t sa_family;
-   char        sa_data[14];
-} 
-
-对于IPV4协议
-struct sockaddr_in {
-   sa_family_t    sin_family; /* address family: AF_INET */
-   in_port_t      sin_port;   /* port in network byte order */
-   struct in_addr sin_addr;   /* internet address */
-}; 
-
-struct in_addr {
-   uint32_t       s_addr;     /* address in network byte order */
-};                                    
 ```
 
+bind成功时返回0,失败则返回-1并设置errno 常见的errno:
+- EACCES,被绑定的地址是受保护的地址，仅超级用户能够访问。比如普通用户将 socket绑定到知名服务端口（端口号为0〜1023）上时，bind将返回EACCES错误。
+- EADDRINUSE,被绑定的地址正在使用中。比如将socket绑定到一个处于TIME_ WAIT状态的socket地址。
 
-```servaddr.sin_addr.s_addr = htonl(INADDR_ANY);```
+
 INADDR_ANY，这个宏表示本地的任意IP地址，因为服务器可能有多个网卡，每个网卡也可能绑定多个IP地址，这样设置可以在所有的IP地址上的指定端口进行监听，直到与某个客户端建立了连接时才确定下来到底用哪个IP地址
-
-把IP地址转换为上面需要的 struct in_addr
-```cpp
-int inet_pton(int af, const char *src, void *dst);
-```
-
-This  function  converts  the character string src into a network address structure in the af address family, then copies the network address structure to dst.  The af argument must be either  AF_INET or AF_INET6.
-
-
-```cpp
-const char *inet_ntop(int af, const void *src,
-                             char *dst, socklen_t size);
-```
 
 
 ## listen函数
 指定同时允许多少个客户端和我建立连接
-如果达到了限制数量，再来一个连接时，accept函数就阻塞在那，直到有一个连接关闭，空出空位，（存疑）
+backlog 在现在的内核版本中，是决定半连接队列和全连接队列大小的一个因子。
+试验:当指定backlog为3时,调用listen后一直睡眠，不调用connect函数，则当建立四个连接后，客户端再发送sync请求建立连接，服务端不会回应（服务端会一直保持半连接队列为空，全连接队列为4）,客户端会一直尝试建立连接直至超时
 ```cpp
 int listen(int sockfd, int backlog);
 ```
