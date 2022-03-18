@@ -2,8 +2,8 @@
 
 ## 字节序问题
 大端：低地址处放高字节
-小端：低地址处放低字节
 
+小端：低地址处放低字节
 检验字节序代码
 ```cpp
 #include <stdio.h>
@@ -135,6 +135,71 @@ printf ( "address 2 :%s\n" , szValue2 );
 addressl: 10.194.71.60
 address2: 10.194.71.60
 
+## 地址信息函数
+在某些情况下，我们想知道一个连接socket的本端socket地址，以及远端的socket地址。下面这两个函数正是用于解决这个问题：
+```cpp
+#include <sys/socket.h>
+// 获取sockfd 对应的本端的socket地址，并将其存储在address参数指定的内存中,如果实际socket地址的长度大于address所指内存区的大小，那么该socket地址将被截断。
+// 成功时返回0,失败返冋-1并设置errno.
+int getsockname(int sockfd, struct sockaddr* address, socklen_t* address_len);
+// 获得远端sockfd的socket地址
+int getpeername(int sockfd, struct sockaddr* address, socklen_t* address_len);
+```
+
+
+## Socket 选项
+```cpp
+#include <sys/socket.h>
+// level指定操作哪个协议的选项,比如IPv4、IPv6、TCP等
+// option_name指定选项的名字
+// option_value、option_len是选项操作的值和长度
+// 成功时返回0，失败返回-1并设置errno
+int getsockopt(int sockfd, int level, int optname, void *restrict optval, socklen_t *restrict optlen);
+int setsockopt(int sockfd, int level, int optname, const void *optval, socklen_t optlen);
+```
+
+值得指出的是，对服务器而言，有部分socket选项只能在调用listen系统调用前针对监听socket设置才有效。这是因为连接socket只能由accept调用返回，而accept从listen监听队列中接受的连接已经完成了TCP三次握手,这说明服务器已经给客户端发送岀了TCP同步报文段。但有的socket选项只能在TCP同步报文段中设置，比如TCP最大报文段选项。对这种情况，Linux给开发人员提供的解决方案是：对监听socket设置这些socket选项，那么accept返回的连接socket将自动継承这些选项。这些socket选项包括：SO_DEBUG、SO DONTROUTE、SOJCEEPALIVE、SO_LINGER、SO_OOBINLINE> SO_RCVBUF、S0_ RCVLOWAT. SO_SNDBUF、SO_SNDLOWAT、TCP_MAXSEG 和 TCP_NODELAY。
+而对客户端而言，这些socket选项则应该在调用connect函数之前设置，因为connect调用成功返回之后，TCP三次握手已完成。
+
+### SO_REUSEADDR选项
+  通过SO_RESUSEADDR选项可以强制使用被处于TIME_WAIT状态的连接占用的socket地址
+```cpp
+int reuse = 1;
+setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+```
+此外，我们也可以通过修改内核参数/proc/sys/nct/ipv4/tcp_tw_recyclc来快速回收被关闭的socket,
+从而使得TCP连接根本就不进入TIME_WAIT状态，进而允许应用程序立即重用本地的socket地址。
+
+### SO_RCVBUF和SO_SNDBUF选项
+SO_RCVLOWAT和SO_SNDLOWAT选项分别表示TCP接收缓冲区和发送缓冲区的低水位标记。它们一般被I/O复用系统调用用来判断socket是否可读或可写。当 TCP接收缓冲区中可读数据的总数大于其低水位标记时，I/O复用系统调用将通知应用程序可以从对应的socket上读取数据；当TCP发送缓冲区中的空闲空间（可以写入数据的空间）大于其低水位标记时，I/O复用系统调用将通知应用程序可以往对应的sockc上写入数据。
+默认情况下，TCP接收缓冲区的低水位标记和TCP发送缓冲区的低水位标记均为1 字节
+
+5.11.3 SO_RCVLOWAT和SO_SNDLOWAT选项
+  SO_RCVLOWAT和SO_SNDLOWAT选项分别表示TCP接收缓冲区和发送缓冲区的低水位标记，其默认为1。一般被IO复用系统调用时判断socket是否刻度或可写。
+
+5.11.4 SO_LINGER选项
+  SO_LINGER选项用于控制close系统调用在关闭TCP连接时的行为，当设置SO_LINGER值时，会将setsockopt系统调用传递给linger结构体
+
+#include <sys/socket.h>
+struct linger{
+    int l_onoff;            // 开启或关闭该选项
+    int l_linger;           // 留置时间
+};
+1
+2
+3
+4
+5
+l_onoff == 0：该选项不起作用。
+l_onoff != 0, l_linger == 0：close系统调用立即返回，TCP模块丢弃被关闭的socket对应的TCP缓冲区残留数据，并给对方发送一个复位报文段。此方法给服务器提供了异常终止的连接方法。
+l_onoff != 0， l_linger>0：阻塞的socket，close等待l_linger的时间，知道TCP模块发送完所有的残留数据并得到对方确认，若未得到返回-1并设置errno；非阻塞的socket，close立即返回，根据返回值和errno怕段擦流数据是否已经发送完毕。
+
+————————————————
+版权声明：本文为CSDN博主「甄姬、巴豆」的原创文章，遵循CC 4.0 BY-SA版权协议，转载请附上原文出处连接及本声明。
+原文连接：https://blog.csdn.net/weixin_46267443/article/details/120722283
+## EINTR
+表示某种阻塞的操作，被接收到的信号中断，造成的一种错误返回值。
+我们经常在网络编程中会看到这样，当执行一个可能会阻塞的系统调用后，在返回的时候需要检查下错误码（if errno == EINTR），如果是这样的错误，那我们一般会重新执行该系统调用。
 
 ## 修改内核参数有3种办法：一种临时修改，两种永久修改。
 - 临时修改

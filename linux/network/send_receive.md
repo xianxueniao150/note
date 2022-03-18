@@ -1,8 +1,10 @@
+对文件的读写操作read和write同样适用于socket。但是socket编程接口提供了凡个专门用于socket数据读写的系统调用，它们増加了对数据读写的控制。
 # tcp数据读写
 ## send
 ```cpp
 #include <sys/types.h>
 #include <sys/socket.h>
+// flags通常设为0
 ssize_t send(int sockfd, const void *buf, size_t len, int flags);
 
 ERRORS：
@@ -11,11 +13,9 @@ EMSGSIZE：UDP单次发送数据超过最大字节限制，则会引发这个错
 当套接字发送缓冲区变满时，send通常会阻塞，除非套接字设置为非阻塞模式，当缓冲区变满时，返回EAGAIN或者EWOULDBLOCK错误，此时可以调用select函数来监视何时可以发送数据。
 
 
-## recv
-读取数据
+## recv 读取数据
 ```cpp
 #include <sys/socket.h>
-
 ssize_t recv(int sockfd, void *buf, size_t len, int flags);
 
 len指定要读取的字节个数，如果实际收到的大于它就会被截断，所以通常需要循环读取
@@ -28,7 +28,7 @@ If no messages are available at the socket, the receive call waits for a message
 ```
 
 ## send 和 recv 函数的各种返回值意义
-* 大于 0:	成功发送 n 个字节
+* 大于 0:	成功发送或者接收了 n 个字节
 * 0	:       对端关闭连接
 * 小于 0:（ -1）	出错或者被信号中断或者对端 TCP 窗口太小数据发不出去（send）或者当前网卡缓冲区已无数据可收（recv）
 
