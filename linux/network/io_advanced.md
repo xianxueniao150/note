@@ -78,6 +78,7 @@ mmap和常规文件操作的区别
 
 常规文件操作需要从磁盘到内核空间再到用户空间的两次数据拷贝。而mmap操控文件，只需要从磁盘到用户空间的一次数据拷贝过程。
 
+```cpp
 //刷新内存到文件中
 int msync(void *addr, size_t length, int flags);
 
@@ -85,6 +86,7 @@ flags：
 MS_ASYNC 异步，立即返回
 MS_SYNC  同步，结束后返回
 MS_INVALIDATE   使其他进程对该文件的映射失效 (so that  they can be updated with the fresh values just written).
+```
 
 ## fcntl 函数
 fcntl函数，正如其名字（file control）描述的那样，提供了对文件描述符的各种控制操作。
@@ -96,4 +98,30 @@ int fcntl(int fd, int cmd, ... /* arg */ );
 
 fd参数是被操作的文件描述符，cmd参数指定执行何种类型的操作。根据操作类型的不同，该函数可能还需要第三个可选参数arg。
 ```
-fcntl函数支持的常用操作及其参数如表6】所示。
+fcntl函数支持的常用操作及其参数如表6所示。
+
+## splice 用于在两个文件描述符之间移动数据，也是零拷贝操作
+```cpp
+#include <fcntl.h>
+ssize_t splice(int fd_in, loff_t *off_in, int fd_out, loff_t *off_out, size_t len, unsigned int flags);
+
+fd_in	待输入数据的文件描述符。
+off_in 	从输入数据流的何处开始读取数据。若被设置为NULL,则表示从输入数据流的当前偏移位置读入
+如果fd_in是一个管道文件描述符，那么off_in 参数必须被设置为NULL
+fd_out/off_out的含义与fd_in/off_in相同，不过用于输出数据流。
+len		指定移动数据的长度； 
+flags	控制数据如何移动，它可以被设置为以下某些值的按位或。
+
+	SPLICE_F MOVE	如果合适的话，按整页内存移动数据。这只是给内核的一个提示。不过因为它的实现存在BUG,所以自内核2.6.21后.它实际上没有任何效果
+	SPLICE_F NONBLOCK	非阻塞的splice操作.但实际效果还会受文件描述符本身的阻塞状态的影响
+	SPLICE_F MORE	给内核的一个提示：后续的splice调用将读取更多数据	
+	SPLICE_F GIFT	对splice没有效果
+
+使用splice函数时，fd_in和fd_out必须至少冇一个是管道文件描述符。
+splice函数调用成功时返冋移动字节的数量。它可能返回0,表示没有数据需要移动，这发生在从管道中读取数据而该管道没有被写入任何数据时。
+splice函数失败时返回-1并设置errno 常见的errno
+	EBADF	参数所指文件描述符有错
+	EINVAL	目标文件系统不支持splice,或者目标文件以追加方式打开.或者两个文件描述符都不是管道文件描述符，或者某个ffset參数被用于不支持随机访问的设备（比如字符设备）
+	ENOMEM	内存不够
+	ESP1PE	参数fd_in（或fd_out〉是管道文件描述符，而off_in（或off_out）不为NULL
+```

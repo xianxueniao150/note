@@ -1,4 +1,14 @@
 # Git Reset
+```sh
+# 回退所有内容到上一个版本
+git reset HEAD^             
+# unstages a file
+git reset ＜file＞
+# unstages all files
+git reset
+# 消除all uncommitted changes
+git reset --hard
+```
 
 ## Main Options
 
@@ -16,7 +26,7 @@ The default invocation of `git reset` has implicit arguments of `--mixed` and `H
 
 而 **reset --hard HEAD^** 之所以起到了撤销 **commit** 的效果，是因为它把 **HEAD** 和它所指向的 branch 一起移动到了当前 **commit** 的父 **commit** 上，从而起到了「撤销」的效果：
 
-![img](image/44.webp)
+![img](images/44.webp)
 
 git reset
 
@@ -28,18 +38,8 @@ Git 的历史只能往回看，不能向未来看，所以把 **HEAD** 和 **bra
 git reset --hard branch2
 ```
 
-![img](image/4428.webp)
+![img](images/4428.webp)
 
-## Example
-
-```sh
-# unstages a file
-git reset ＜file＞
-# unstages all files
-git reset
-# 消除all uncommitted changes
-git reset --hard
-```
 
 # Git Revert  撤销中间某次提交
 `git revert 4d21ddf0ddb028f7afbaa47bedaa92ae8ced775d`

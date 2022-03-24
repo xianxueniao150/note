@@ -177,26 +177,23 @@ SO_RCVLOWAT和SO_SNDLOWAT选项分别表示TCP接收缓冲区和发送缓冲区�
 5.11.3 SO_RCVLOWAT和SO_SNDLOWAT选项
   SO_RCVLOWAT和SO_SNDLOWAT选项分别表示TCP接收缓冲区和发送缓冲区的低水位标记，其默认为1。一般被IO复用系统调用时判断socket是否刻度或可写。
 
-5.11.4 SO_LINGER选项
-  SO_LINGER选项用于控制close系统调用在关闭TCP连接时的行为，当设置SO_LINGER值时，会将setsockopt系统调用传递给linger结构体
-
+### SO_LINGER选项
+SO_LINGER选项用于控制close系统调用在关闭TCP连接时的行为。默认情况下，当我们使用close系统调用来关闭一个socket时，close将立即返回，TCP模块负责把该socket对应的TCP发送缓冲区中残留的数据发送给对方。
+设置（获取）SO_LINGER选项的值时，我们需要给sctsockopt （gctsockopt）系统调用传递一个linger类型的结构体，其定义如下
+```cpp
 #include <sys/socket.h>
 struct linger{
-    int l_onoff;            // 开启或关闭该选项
-    int l_linger;           // 留置时间
+    int l_onoff;            // 开启（非0）还是关闭(0）该选项
+    int l_linger;           // 滞留时间
 };
-1
-2
-3
-4
-5
-l_onoff == 0：该选项不起作用。
-l_onoff != 0, l_linger == 0：close系统调用立即返回，TCP模块丢弃被关闭的socket对应的TCP缓冲区残留数据，并给对方发送一个复位报文段。此方法给服务器提供了异常终止的连接方法。
-l_onoff != 0， l_linger>0：阻塞的socket，close等待l_linger的时间，知道TCP模块发送完所有的残留数据并得到对方确认，若未得到返回-1并设置errno；非阻塞的socket，close立即返回，根据返回值和errno怕段擦流数据是否已经发送完毕。
 
-————————————————
-版权声明：本文为CSDN博主「甄姬、巴豆」的原创文章，遵循CC 4.0 BY-SA版权协议，转载请附上原文出处连接及本声明。
-原文连接：https://blog.csdn.net/weixin_46267443/article/details/120722283
+l_onoff == 0：该选项不起作用。close用默认行为来关闭socket
+l_onoff != 0, l_linger == 0：close系统调用立即返回，TCP模块丢弃被关闭的socket对应的TCP缓冲区残留数据，并给对方发送一个复位报文段。此方法给服务器提供了异常终止的连接方法。
+l_onoff != 0， l_linger>0：此时close的行为取决于两个条件：一是被关闭 的socket对应的TCP发送缓冲区中是否还有残所的数据；二是该socket是阻塞的，还是非阻塞的。
+	对于阻塞的socket, close将等待一段长为l_linger的时间，直到TCP模块发送完所有残留数据并得到对方的确认。如果这段时间内TCP模块没有发送完残留数据并得到对方的确认，那么close系统调用将返回-1并设置errno为EWOULDBLOCK。
+	如果socket是非阻塞的，close将立即返回，此时我们需要根据其返回值和errno来判断残留数据是否已经发送完毕。
+```
+
 ## EINTR
 表示某种阻塞的操作，被接收到的信号中断，造成的一种错误返回值。
 我们经常在网络编程中会看到这样，当执行一个可能会阻塞的系统调用后，在返回的时候需要检查下错误码（if errno == EINTR），如果是这样的错误，那我们一般会重新执行该系统调用。
