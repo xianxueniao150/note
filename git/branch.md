@@ -45,6 +45,7 @@ git checkout -b 名称
 # 重命名branch 
 git branch -m <branch>
 # 删除branch,出于安全考虑，没有被合并到 master 过的 branch 在删除时会失败（怕误删未完成branch）把-d换成-D可以强制删除
+# 不允许删除当前所在分支，需要先checkout 到别的分支
 git branch -d 名称
 ```
 
