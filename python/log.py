@@ -1,6 +1,6 @@
 # -*- coding:utf8 -*-
 import os
-import sys
+import time
 import json
 
 def findAllFile(base):
@@ -15,15 +15,19 @@ def parse(access_log,):
         try:
             log_line = json.loads(line)
             path = log_line["properties"]["path"]
+            device = ("deviceId" in log_line.keys() and log_line["deviceId"] or "")
+            ts = log_line["timestamp"]
+            #转换成localtime
+            time_local = time.localtime(ts)
+            dt = time.strftime("%Y-%m-%d",time_local)
             if path.endswith("invitation/genCode"):
                 status = log_line["properties"]["http_status"]
                 if status==200:
-                    # print(path)
-                    print(line)
+                    print(dt,path,device,sep='\t')
             if path.endswith("invitation/getName"):
                 status = log_line["properties"]["http_status"]
                 if status==200:
-                    print(line)
+                    print(dt,path,device,sep='\t')
         except:
             pass
 
@@ -33,10 +37,9 @@ def main():
     base = '/data/logs/lpserver-api'
     for i in findAllFile(base):
         if i.endswith("access.log"):
-            # print(i)
-            out = parse(i)
-            # for k, v in out.items():
-            #     print(k + "\t" + str(v["pv"]) + "\t" + str(len(v["uids"])) + "\t" + str(len(v["tokens"])) + "\t" + str(len(v["devices"])) + "\t" + str(len(v["ips"])))
+            date=i.split("/")[4]
+            if int(date)>20220323:
+                out = parse(i)
 
 if __name__ == '__main__':
     main()

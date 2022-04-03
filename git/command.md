@@ -9,3 +9,8 @@ git update-index --no-skip-worktree <file-list>
 ```sh
 git remote set-url --add --push origin git@github.com:MY_REPOSITY/dnmp.git
 ```
+
+## 浅clone
+```sh
+--depth 1
+```

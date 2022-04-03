@@ -19,12 +19,9 @@
 
 
 ### By Range
-
 You can pass a range of commits to `git log` to show only the commits contained in that range. The range is specified in the following format, where `` and `` are commit references:
 
-```
-git log ..
-```
+分支前加orgin/ 表示远程分支，所以可以比较远程分支和本地分支的区别
 
 This command is particularly useful when you use branch references as the parameters. It’s a simple way to show the differences between 2 branches. Consider the following command:
 
@@ -34,9 +31,7 @@ This command is particularly useful when you use branch references as the parame
 
 The `main..feature` range contains all of the commits that are in the `feature` branch, but aren’t in the `main` branch. In other words, this is how far `feature` has progressed since it forked off of `main`. You can visualize this as follows:
 
-![Detecting a fork in the history using ranges](log.assets/01 By Range.svg)
-
-Note that if you switch the order of the range (`feature..main`), you will get all of the commits in `main`, but not in `feature`. If `git log` outputs commits for both versions, this tells you that your history has diverged.
+![Detecting a fork in the history using ranges](images/By_Range.svg)
 
 
 ## reflog

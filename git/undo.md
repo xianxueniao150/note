@@ -48,3 +48,8 @@ A revert operation will take the specified commit, inverse the changes from that
 可能会触发冲突，需要解决冲突。
 
 ![Git revert - Atlassian git tutorials](images/revert.svg)
+
+# git clean
+Run 'git clean -n' to see a dry run;
+Run 'git clean -f' to force untracked file deletion;
+Use 'git clean -f -d' to remove untracked directories;
