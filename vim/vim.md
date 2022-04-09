@@ -1,5 +1,5 @@
 ## 移动
-k 0	移光标至行首
+- 0	移光标至行首
 - ^	移光标至本行首个非空格的字节
 - G	移光标至整个文本最后一行首个非空格字节
 - %	移光标至匹配括号的另一端
@@ -12,7 +12,12 @@ k 0	移光标至行首
 - Ctrl + d 是向下 (down) 滚动文本，而 Ctrl + u 是向上 (up) 滚动文本。
 - 移动光标的方法有 h j k l，w，b
 - When your cursor is under a word, you can hit *  to jump to this next word occurrence. 
+- zz: 将当前行置于屏幕中间 
+- zt: 将当前行置于屏幕顶端 
+- zb：将当前行置于屏幕底端
+- `[ and `] are marks automatically set by vim to the start and the end of the "previously changed or yanked text".
 
+## 其他
 * A    追加文本，会先将光标移到行尾
 除了用 i 可进入输入模式之外，也可以用 a (append)。a 会在 i 的右侧一字节进入输入模式（所谓 append 的意思）。
 * u    撤销更改
@@ -35,8 +40,10 @@ k 0	移光标至行首
 [数字] + operator + perator (前后均为同一个 operator）
 
 
-- >> - 将当前行向右缩进
-<!-- - << - 将当前行向左缩进 -->
+```sh
+ - >> - 将当前行向右缩进
+ - << - 将当前行向左缩进 
+```
 
 ## 文本对象 (text-object)
 文本对象 是 vim 描述文本的一种方式， 只能放在 operator 之后，由 i (inner) 或 a (a) 加 文本范围 （下面会有表格） 组成。其中， i 表示 “在文本范围之内”， a 表示 “整个文本范围”。
@@ -330,6 +337,18 @@ endfunction
 unmap <C-S>
 map! <C-S> <ESC>:call CheckChineseMark()<ESC>:w<ESC>a
 ```
+
+
+## 定义命令行命令
+Vim 编辑器允许你定义你自己的命令。你可以像运行其他命令行命令一样运行你自定义的
+命令。
+   要定义一个命令，像下面一样执行 ":command" 命令: 
+        :command DeleteFirst 1delete
+
+现在当你执行 ":DeleteFirst" 命令时，Vim 执行 ":1delete" 来删除第一行。
+
+要列出用户定义的命令，执行下面的命令: 
+        :command
 
 ```vim
 " 删除空格行：

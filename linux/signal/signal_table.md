@@ -9,7 +9,7 @@
 6	SIGABRT	abort发出的信号	 
 7	SIGBUS	非法内存访问	 
 8	SIGFPE	浮点异常	 
-9	SIGKILL	kill信号	不能被忽略、处理和阻塞
+9	SIGKILL	kill信号	**不能被忽略、处理和阻塞**
 10	SIGUSR1	用户信号1	 
 11	SIGSEGV	无效内存访问	 
 12	SIGUSR2	用户信号2	 
@@ -19,7 +19,7 @@
 16	SIGSTKFLT	栈溢出	 
 17	SIGCHLD	子进程退出	默认忽略
 18	SIGCONT	进程继续	 
-19	SIGSTOP	进程停止	不能被忽略、处理和阻塞
+19	SIGSTOP	进程停止	**不能被忽略、处理和阻塞**
 20	SIGTSTP	进程停止   ctrl+z 
 21	SIGTTIN	进程停止，后台进程从终端读数据时	 
 22	SIGTTOU	进程停止，后台进程想终端写数据时	 

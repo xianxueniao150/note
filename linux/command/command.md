@@ -1,3 +1,6 @@
+## less
+-R 输出彩色
+
 ## ls
 ```sh
 ls -lht  

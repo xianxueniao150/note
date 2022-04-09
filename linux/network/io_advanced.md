@@ -88,17 +88,6 @@ MS_SYNC  同步，结束后返回
 MS_INVALIDATE   使其他进程对该文件的映射失效 (so that  they can be updated with the fresh values just written).
 ```
 
-## fcntl 函数
-fcntl函数，正如其名字（file control）描述的那样，提供了对文件描述符的各种控制操作。
-另外一个常见的控制文件描述符属性和行为的系统调用是ioctl,而且ioctl比fcntl能够执行更多的控制。但是，对于控制文件描述符常用的属性和行为，fcntl函数是由POSIX规范指定的首选方法。
-```cpp
-#include <unistd.h>
-#include <fcntl.h>
-int fcntl(int fd, int cmd, ... /* arg */ );
-
-fd参数是被操作的文件描述符，cmd参数指定执行何种类型的操作。根据操作类型的不同，该函数可能还需要第三个可选参数arg。
-```
-fcntl函数支持的常用操作及其参数如表6所示。
 
 ## splice 用于在两个文件描述符之间移动数据，也是零拷贝操作
 ```cpp

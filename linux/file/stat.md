@@ -1,3 +1,56 @@
+### 文件占用空间的大小
+```sh
+ubuntu@VM-12-3-ubuntu:~$ echo "hello world" > a.txt
+ubuntu@VM-12-3-ubuntu:~$ ll a.txt
+-rw-rw-r-- 1 ubuntu ubuntu 12 Nov  1 02:28 a.txt
+ubuntu@VM-12-3-ubuntu:~$ du -h a.txt
+4.0K	a.txt
+```
+a.txt只有12个字节，但是占用了4k字节的磁盘空间
+cluster：簇。文件系统是以簇为单位进行分配的，簇的大小可以调节
+
+### 文件信息
+```javascript
+ubuntu@VM-12-3-ubuntu:~$ stat a.txt
+  File: a.txt
+# 实际大小            占用多少个扇区        簇的大小  
+  Size: 12        	Blocks: 8          IO Block: 4096   regular file
+Device: fc01h/64513d	Inode: 132389      Links: 1
+Access: (0664/-rw-rw-r--)  Uid: (  500/  ubuntu)   Gid: (  500/  ubuntu)
+#      2进制   110 110 100
+#      8进制   6    4   4
+Access: 2021-11-01 02:28:33.086420749 +0800
+Modify: 2021-11-01 02:28:33.086420749 +0800
+Change: 2021-11-01 02:28:33.086420749 +0800
+```
+
+### 使用debugfs命令观察文件的扇区内容
+```sh
+ubuntu@VM-12-3-ubuntu:~$ sudo debugfs /dev/vda1
+debugfs 1.44.1 (24-Mar-2018)
+debugfs:  blocks a.txt
+a.txt: File not found by ext2_lookup
+debugfs:  blocks /home/ubuntu/a.txt #查看a.txt文件占用的扇区号
+576211
+debugfs:  bdump 576211 #将指定编号扇区的内容打印出来
+0000  6865 6c6c 6f20 776f 726c 640a 0000 0000  hello world.....
+0020  0000 0000 0000 0000 0000 0000 0000 0000  ................
+*
+
+#我们试着将a文件删除
+ubuntu@VM-12-3-ubuntu:~$ rm a.txt
+
+#再次进入debugfs 查看之前的扇区内容
+ubuntu@VM-12-3-ubuntu:~$ sudo debugfs /dev/vda1
+debugfs 1.44.1 (24-Mar-2018)
+debugfs:  bdump 576211 #发现文件虽然删除了，但是扇区中的文件内容还在，可以用来反删除
+0000  6865 6c6c 6f20 776f 726c 640a 0000 0000  hello world.....
+0020  0000 0000 0000 0000 0000 0000 0000 0000  ................
+*
+```
+
+
+
 ## 获取文件属性
 stat  既是一个函数也是一个shell命令，面对符号链接文件时获取的是所指向文件的属性
 ```cpp

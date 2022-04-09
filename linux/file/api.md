@@ -1,4 +1,4 @@
-## 内核缓冲技术
+# 内核缓冲技术
 应用缓冲技术对提高系统的效率是很明显的，它的主要思想是一次读入大量的数据放入缓冲区，需要的时候从缓冲区取得数据。
 
 为了提高效率，内核也使用缓冲技术来提高对磁盘的访问速度
@@ -9,6 +9,41 @@
 
 理解内核缓冲技术的原理有助于更好地掌握系统调用read和write, read把数据从内核缓冲区复制到进程中，write把数据从进程中复制到内核缓冲区，它们并不等价于数据在内核缓冲和磁盘之间的交换。
 从理论上讲，内核可以在任何时候写磁盘，但并不是所有的write操作都会导致内核的写动作。内核会把要写的数据暂时存在缓冲区中，积累到一定数量后再一次写入。有时会导致意外情况，比如突然断电，内核还来不及把内核缓冲区中的数据写到磁盘上，这些更新的数据就会丢失。
+
+## 磁盘文件属性
+```sh
+O_CREAT 如果不存在，创建该文件。
+O_TRUNC 如果文件存在，将文件长度置为0。
+```
+
+### O_SYNC
+位逻辑或操作 打开位O_SYNC 该位告诉内核，对write的调用仅能在数据写入实际的硬件时才能返回，而不是在数据复制到内核缓冲时就执行默认的返回操作。
+设置O_SYNC会关闭内核的缓冲机制，如果没有很充分的理由，最好不要关闭缓冲。
+
+### O_APPEND
+自动添加模式对于若干个进程在同一时间写入文件是很有用的。
+
+向日志文件中添加内容分为两个步骤:1.lseek定位到文件结尾 2.write写入日志
+如果两个进程同时写入，可能会发生覆盖情况.
+如何避免这种竞争？有很多方法避免竞争。在这个特定的情况中，内核提供一个简单的解决办法：自动添加模式。当文件描述符的O_APPEND位被开启后，每个对write的调用自动调用lseek将内容添加到文件的末尾。
+```cpp
+# include <fcntl. h>
+int s ；	//settings
+s = fcntl ( fd, F_GETFL)；	//get flags
+s | = O_APPEND；	//set APPEND bit
+result = fcntl ( fd, F_SETFL, s)；	//set flags
+if ( result == - 1)	//if error
+	perror ( "setting APPEND")；	// report
+else	
+	write (fd, &rec, 1)；	//write record at end
+```
+术语竞争和原子操作(atomoc operation)密切相关。对lseek和write的调用是独立的系统调用，内核可以随时打断进程，从而使后面这两个操作被中断。当O_APPEND被置位， 内核将lseek和write组合成一个原子操作，被连接成一个不可分割的单元。�
+
+### O_EXCL
+防止两个进程创建同样的文件。如果文件存在且O_EXCL被置位，则返回-1。
+O_CREAT和O_EXCL的组合用来消除以下竞争情况
+例如,如果两个进程都要写wtmp,但是这个文件不存在时，都要创建该文件，此时会发生什么情况？程序能够先调用stat查看文件是否存在，如果不存在，就调用 creat。当stat和creat间的过程被打断时，问题就出现了。O_EXCL/O_CREAT的组合将这两个调用构成了一个原子操作。虽然想法很好，但是这种方法在某些重要场合并不可行。一个可靠的替代方案是使用link。本章的练习提供了一个例子。
+
 
 ## read
 ```cpp
@@ -89,3 +124,65 @@ umask( 022 )；
 int chmod(const char *pathname, mode_t mode);
 ```
 系统调用chmod不受“新建文件掩码”的影响。
+
+## glob 目录解析
+```cpp
+int glob(const char *pattern, int flags,
+                int (*errfunc) (const char *epath, int eerrno),
+                glob_t *pglob);
+void globfree(glob_t *pglob);
+
+typedef struct {
+               size_t   gl_pathc;    /* Count of paths matched so far  */
+               char   **gl_pathv;    /* List of matched pathnames.  */
+               size_t   gl_offs;     /* Slots to reserve in gl_pathv.  */
+           } glob_t;
+```
+
+
+```cpp
+#include <stdio.h>
+#include <stdlib.h>
+#include <glob.h>
+
+#define PAT "/etc/a*.conf"
+
+int main(){
+
+    glob_t globres;
+    glob(PAT,0,NULL,&globres);
+    //打印出指定pattern的文件
+    for(int i=0;i<globres.gl_pathc;i++)
+    {
+        puts(globres.gl_pathv[i]);
+    }
+    
+    globfree(&globres);
+
+    exit(0);
+}
+```
+
+## fcntl 函数
+fcntl函数，正如其名字（file control）描述的那样，提供了对文件描述符的各种控制操作。
+另外一个常见的控制文件描述符属性和行为的系统调用是ioctl,而且ioctl比fcntl能够执行更多的控制。但是，对于控制文件描述符常用的属性和行为，fcntl函数是由POSIX规范指定的首选方法。
+```cpp
+#include <unistd.h>
+#include <fcntl.h>
+int fcntl(int fd, int cmd, ... /* arg */ );
+
+fd参数是被操作的文件描述符，cmd参数指定执行何种类型的操作。根据操作类型的不同，该函数可能还需要第三个可选参数arg。
+```
+
+修改文件设置的三个步骤
+```javascript
+# include <fcntl. h>
+int s；	//settings
+s = fcntl (fd, F_GETFL)；	//1.获取设置
+s | = O_SYNC；		//2.修改设置
+result = fcntl (fd, F_SETFL, s)；	//3.存储设置
+if ( result = = 1)	//if error
+	perror ("setting SYNC")；	//report
+```
+
+
