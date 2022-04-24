@@ -17,9 +17,23 @@ du -h    /目录
 --max-depth=1    子目录深度
 -c 列出明细的同时，增加汇总值
 
-例
+mac例
 du -mh -d=2 *  #查询当前目录每个文件夹的大小
 du -ach --max-depth=1 /root/nginx-1.10.1
+
+linux例
+# 查看当前目录总共占的容量，而不单独列出各子项占用的容量 ，在所在目录输入du -sh：
+du -sh
+
+# 查看当前目录下一级子文件和子目录占用的磁盘容量：
+du -h --max-depth=1
+# 或者
+du -sh *
+# 并且排序
+du -sh * | sort -n
+
+# 查看指定文件大小可以使用du -sh：
+du -sh installmongofor3.6.log
 ```
 
 
