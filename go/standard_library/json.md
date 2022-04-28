@@ -24,3 +24,17 @@ func TestA(t *testing.T) {
 	}
 }
 ```
+
+## 特殊字符转义问题
+
+golang json.Marshal方法会把部分字符转为转移字符，从而方便前端的把JSON转为HTML。 也就是说：json.Marshal 默认 escapeHtml 为true,会转义 <、>、&
+
+避免转义
+```go
+bf := bytes.NewBuffer([]byte{})
+jsonEncoder := json.NewEncoder(bf)
+jsonEncoder.SetEscapeHTML(false)
+jsonEncoder.Encode(rsp)
+fmt.Println(bf.String())
+```
+

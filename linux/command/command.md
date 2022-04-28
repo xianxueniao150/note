@@ -149,15 +149,20 @@ curl -X POST -H "Content-Type:application/json" --data '{"dmac": "00:0C:29:EA:39
 
 ## grep
 
+```sh
+显示匹配某个结果之后的3行，使用 -A 选项：
+显示匹配某个结果之前的3行，使用 -B 选项：
+显示匹配某个结果的前三行和后三行，使用 -C 选项：
+
 * 和 + 限定符都是贪婪的，因为它们会尽可能多的匹配文字，只要在它们的后面加上一个?就可以实现懒惰或最小匹配
   grep -oP "app:.*?;"
 
 cat access.log | grep -v '"time":0.0'
 
-while true; do ; sleep 1;done
-
 pgrep -f a.out //直接输出对应程序的进程号
+```
 
+while true; do ; sleep 1;done
 test
 
 1. find

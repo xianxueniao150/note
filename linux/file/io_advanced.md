@@ -95,47 +95,6 @@ count	指定在文件描述符in_fd和out_fd之间传输的字节数。
 成功时返冋传输的字节数，失败则返冋-1并设置errno。
 ```
 
-## mmap函数和munmap函数
-mmap函数用于申请一段内存空间。我们可以将这段内存作为进程间通信的共享内存, 也可以将文件直接映射到其中。munmap函数则释放由mmap创建的这段内存空间
-```cpp
-
-#include <sys/mman.h>
-
-void *mmap(void *addr, size_t length, int prot, int flags,
-		  int fd, off_t offset);
-int munmap(void *addr, size_t length);
-
-addr	 建议的内存起始地址,一般设为null,系统自动分配一个地址
-length 	指定内存段的长度
-prot	 设置内存段的访问权限,可以取以下几个值的按位或
-	PROT_EXEC     内存段可执行
-	PROT_READ     内存段可读
-	PROT_WRITE    内存段可写
-	PROT_NONE     内存段不能被访问
-
-flags 控制内存段内容被修改后程序的行为,按位或(其中MAP_SHARED和MAP_PRIVATE是互斥的，不能同时指定）)
-	MAP_PRIVATE：对映射区域的写入操作会产生一个映射的复制(copy-on-write)，任何内存中的改动并不反映到文件之中。也不反映到其他映射了这个文件的进程之中。
-	MAP_SHARED：和其他进程共享这个文件。往内存中写入相当于往文件中写入。会影响映射了这个文件的其他进程。
-
-offset 设置从文件的何处开始映射
-
-成功执行时，mmap()返回被映射区的指针。失败时，mmap()返回MAP_FAILED[其值为(void *)-1]， 并设置error
-```
-mmap是一种内存映射文件的方法，即将一个文件映射到进程的地址空间，实现文件磁盘地址和进程虚拟地址空间中一段虚拟地址的一一对映关系。实现这样的映射关系后，进程就可以采用指针的方式读写操作这一段内存，而系统会自动回写脏页面到对应的文件磁盘上，即完成了对文件的操作而不必再调用read,write等系统调用函数。
-
-mmap和常规文件操作的区别
-
-常规文件操作需要从磁盘到内核空间再到用户空间的两次数据拷贝。而mmap操控文件，只需要从磁盘到用户空间的一次数据拷贝过程。
-
-```cpp
-//刷新内存到文件中
-int msync(void *addr, size_t length, int flags);
-
-flags：
-MS_ASYNC 异步，立即返回
-MS_SYNC  同步，结束后返回
-MS_INVALIDATE   使其他进程对该文件的映射失效 (so that  they can be updated with the fresh values just written).
-```
 
 
 ## splice 用于在两个文件描述符之间移动数据，也是零拷贝操作

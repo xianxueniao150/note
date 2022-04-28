@@ -66,3 +66,13 @@ struct stat {
    };
 ```
 
+## ftruncate 调整文件大小
+```cpp
+#include <unistd.h>
+#include <sys/types.h>
+int ftruncate(int fd, off_t length);
+```
+Posix就该函数对普通文件和共享内存区对象的处理的定义稍有不同。
+- 对于一个普通文件：如果该文件的大小大于length参数，额外的数据就被丢弃掉。如果该文件的大小小于length，那么该文件是否修改以及其大小是否增长是未加说明的。实际上对于一个普通文件，把它的大小扩展到length字节的可移植方法是：先lseek到偏移为length-1处，然后write 1个字节的数据。所幸的是几乎所有Unix实现都支持使用 ftruncate扩展一个文件。
+- 对于一个共享内存区对象：ftruncate把该对象的大小设置成length字节。
+

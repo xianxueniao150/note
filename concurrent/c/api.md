@@ -42,16 +42,6 @@ void pthread_testcancel(void);  //添加一个取消点
 允许取消又分为：异步cancel，推迟cancel（默认）->推迟至cancel点再响应
 cancel点，POSIX定义的cancel点，都是可能引发阻塞的系统调用
 
-## 互斥量
-```cpp
-int pthread_mutex_destroy(pthread_mutex_t *mutex);
-int pthread_mutex_init(pthread_mutex_t *restrict mutex, const pthread_mutexattr_t *restrict attr);
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; //使用默认属性初始化
-
-int pthread_mutex_lock(pthread_mutex_t *mutex);
-int pthread_mutex_trylock(pthread_mutex_t *mutex);
-int pthread_mutex_unlock(pthread_mutex_t *mutex);
-```
 
 
 
