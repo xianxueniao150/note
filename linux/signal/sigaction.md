@@ -1,4 +1,7 @@
-#### sigaction
+## sigaction
+可以添加信号处理过程中的信号阻塞集。
+比如我的程序接收到SIGQUIT或者SIGTERM信号，就执行资源清理操作。如果收到SIGQUIT信号清理到一半，又收到SIGTERM信号，就又重复去清理了，就可能导致异常。
+sigaction就可以保证我不会被打断。
 ```cpp
 // act参数指定新的信号处理方式， oact参数则输出先前的处理方式（如果不为 NULL）
 // 成功时返回 0，失败返回 -1并设置 errno
@@ -22,6 +25,8 @@ struct sigaction
     int sa_flags;
 
   };
+
+siginfo_t: 可以拿到信号的许多信息，包括信号是不是来自内核
 ```
 
 ### 示例

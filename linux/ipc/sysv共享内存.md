@@ -1,16 +1,18 @@
 共享内存是内核在物理内存中预留了一片空间用于进程间的通信，这部分内存空间不属于任何一个进程，但每个进程都可以访问它们(通过建立映射)。
-共享内存是进程间通信最简单的方式，但是读取和写入必须同步。
 
 我们可以在终端中使用 ipcs -m 查看系统当前开辟的共享内存：
 
 ## 相关系统调用
 ### shmget 创建或者获取共享内存
 ```cpp
-// 成功返回共享内存的标识符，否则返回-1
+#include <sys/ipc.h>
+#include <sys/shm.h>
+
 int shmget(key_t key, size_t size, int shmflg);
 
-size:我们需要共享内存的大小，
-shmflg:共享内存的标志位。最后9位是访问权限，要创建新的共享内存需要使用shmflg | IPC_CREA 
+size:以字节为单位指定内存区的大小。当实际操作为创建一个新的共享内存区时，必须指定一个不为0的size值。如果实际操作为访问一个已存在的共享内存区，那么size应为0。
+
+返回值是一个称为共享内存区标识符(sharedmemory identifier)的整数
 ```
 
 ### shmat 建立映射
@@ -28,6 +30,7 @@ shmflg:一般不用设置，只填0就行了。
 int shmdt(const void *shmaddr);
 ```
 shmdt()函数只是断开进程和共享内存的映射，并没有销毁共享内存，要销毁共享内存需要使用函数shmctl()。
+进程终止时自动解除
 
 ### shmctl()
 shmctl()函数原型如下：
@@ -37,6 +40,8 @@ int shmctl(int shmid, int cmd, struct shmid_ds *buf);
 
 cmd:
 	IPC_RMID 销毁,buf传入NULL
+	IPC_SET	给所指定的共享内存区设置其shmid_ds结构的以下三个成员：shm_perm.uid、shm_perm.gid和shm_perm.mode,它们的值来自buf参数指向的结构中的相应成员。shm_ctime的值也用当前时间替换。
+	IPC_STAT（通过buf参数）向调用者返回所指定共享内存区当前的shmid_ds结构。(常用于获取共享内存区的大小)
 ```
 
 ### 共享内存实例

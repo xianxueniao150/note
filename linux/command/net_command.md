@@ -189,6 +189,33 @@ Linux的聊天蛮有意思的，不过，如果你正在终端编辑一个文件
 sysctl -n net.ipv4.tcp_keepalive_time
 ```
 
+## ip
+```sh
+# 显示网络设备的运行状态
+ip link list
+```
+
+```sh
+ip [ OPTIONS ] OBJECT { COMMAND | help }
+
+常用对象的取值含义如下：
+	link：网络设备
+	address：设备上的协议（IP或IPv6）地址
+	addrlabel：协议地址选择的标签配置
+	route：路由表条目
+	rule：路由策略数据库中的规则
+```
+
+## route 查看路由表
+```sh
+-n 名称转换为ip地址
+
+
+```
+字段解释:
+	flags:G表示路由为网关
+
+
 
 
 

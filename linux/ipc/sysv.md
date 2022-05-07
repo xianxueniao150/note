@@ -96,3 +96,39 @@ if (shmctl(id, IPC_STAT, &shmds) == -1)     /* Fetch from kernel */
     errExit("shmctl");
     errExit("shmctl");
 ```
+
+### ftok
+函数ftok把一个已存在的路径名和一个整数标识符转换成一个key_t值，称为IPC键
+```cpp
+#include <sys/types.h>
+#include <sys/ipc.h>
+
+key_t ftok(const char *pathname, int proj_id);
+```
+该函数把从pathname导出的信息与proj_id的低序8位组合成一个整数IPC键。
+如果客户和服务器之间只需单个IPC通道，那么可以使用譬如说值为1的proj_id。如果需要多个IPC通道，譬如说从客户到服务器一个通道，从服务器到客户又一个通道，那么作为一个例子，一个通道可使用值为1的proj_id，另个通道可使用值为2的proj_id。 客户和服务器一但在pathname和proj_id上达成一致，双方就都能调用ftok函数把pathname和proj_id转换成同一个IPC键。
+
+如果pathname不存在，或者对于调用进程不可访问，ftok就返回-1。注意，路径名用于产生键的文件不能是在服务器存活期间由服务器反复创建并删除的文件，因为该文件每次创建时由系统赋予的索引节点号很可能不一样，于是对下个调用者来说，由ftok返回的键也可能不同。
+
+
+## ipc权限
+每当使用某个get_XXX函数（指定IPC_CREAT标志）创建一个新的IPC对象时，以下信息就保存到该对象的ipc_perm结构中。
+```cpp
+struct ipc_perm {
+   key_t          __key; /* Key supplied to semget(2) */
+   uid_t          uid;   /* Effective UID of owner */
+   gid_t          gid;   /* Effective GID of owner */
+   uid_t          cuid;  /* Effective UID of creator */
+   gid_t          cgid;  /* Effective GID of creator */
+   unsigned short mode;  /* Permissions */
+   unsigned short __seq; /* Sequence number */
+};
+
+mode:低9位表示权限
+	0400    Read by user.
+	0200    Write by user.
+	0040    Read by group.
+	0020    Write by group.
+	0004    Read by others.
+	0002    Write by others.
+```
