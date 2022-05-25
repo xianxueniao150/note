@@ -130,10 +130,17 @@ $nc 172.31.100.7 1567
 
 
 # 监控
+## nethogs
+```sh
+按进程实时统计网络带宽利用率
+sudo apt install nethogs
+sudo nethogs
+```
 
 ## dstat 查看网络流量
 ```sh
 yum install -y dstat
+sudo apt install  dstat
 dstat -tnf 1 10    #输出接下来10秒内每秒的网络数据
 ```
 

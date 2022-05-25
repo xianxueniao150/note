@@ -32,3 +32,22 @@ git tag <name>
 $ git push origin --tags
 ```
 
+## git命令将文件夹移到另一个文件夹中
+不需要显式跟踪文件重命名。 Git会通过比较文件的内容来弄明白。
+```cpp
+$ mkdir include
+$ mv common include
+$ git rm -r common
+$ git add include/common
+```
+
+运行git status应该会显示如下：
+```sh
+$ git status
+# On branch master
+# Changes to be committed:
+#   (use "git reset HEAD <file>..." to unstage)
+#
+#   renamed:    common/file.txt -> include/common/file.txt
+#
+```

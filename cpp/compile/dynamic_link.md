@@ -32,6 +32,13 @@ gcc -shared -fPIC -o mylib.so myproc1.o myproc2.o # libc.so无需明显指出
 
 可以用ldd观察程序依赖的.so文件是否存在not found情况
 
+### 编译链接时的动态库搜索路径的顺序
+首先从gcc命令的参数-L指定的路径寻找；再从环境变量LIBRARY_PATH指定的路径寻址；再从默认路径/lib、/usr/lib、/usr/local/lib寻找。
+
+### 执行二进制文件时的动态库搜索路径的顺序
+首先搜索编译目标代码时指定的动态库搜索路径；再从环境变量LD_LIBRARY_PATH指定的路径寻址；再从配置文件/etc/ld.so.conf中指定的动态库搜索路径；再从默认路径/lib、/usr/lib寻找。
+
+
 为了让程序运行时能够找到共享库，有以下几种方法
 - 运行时用LD_LIBRARY_PATH指定共享库所在文件夹
 - 链接时使用-Wl,-rpath指定共享库所在文件夹

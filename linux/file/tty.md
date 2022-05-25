@@ -87,3 +87,6 @@ isig icanon iexten echo echoe echok -echonl -noflsh -xcase -tostop -echoprt echo
  onlcr代表Output：add to NewLine a Carriage Return(输出时在新的一行中加入回车）。
 
 （2）使用stty改变驱动程序设置
+
+
+## ctrl+d 相当于在终端键入EOF字符

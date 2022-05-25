@@ -9,6 +9,7 @@ ssize_t send(int sockfd, const void *buf, size_t len, int flags);
 
 ERRORS：
 EMSGSIZE：UDP单次发送数据超过最大字节限制，则会引发这个错误
+EPIPE:  如果本机已感知到对端断开了连接(比如对端发送了RST).In  this  case, the process will also receive a SIGPIPE unless MSG_NOSIGNAL is set.
 ```
 当套接字发送缓冲区变满时，send通常会阻塞，除非套接字设置为非阻塞模式，当缓冲区变满时，返回EAGAIN或者EWOULDBLOCK错误，此时可以调用select函数来监视何时可以发送数据。
 

@@ -13,6 +13,8 @@ $ gcc -static -o myproc main.o -L. -lmy
 ar -t /usr/lib32/libc.a
 ```
 
+由于链接动态库和静态库的路径可能有重合，所以如果在路径中有同名的静态库文件和动态库文件，比如libtest.a和libtest.so，gcc链接时默认优先选择动态库，会链接libtest.so，如果要让gcc选择链接libtest.a则可以指定gcc选项-static，该选项会强制使用静态库进行链接。
+
 ## 静态共享库
 静态库 (.a)
 – 将所有相关的目标模块（.o）打包为一个单独的库文件（.a），称为静态库文件 ，也称存档文件（archive）
