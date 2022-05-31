@@ -13,6 +13,13 @@ make(map[KeyType]ValueType, [cap])
 
 ## map基本使用
 ```go
+var emailTeamplateMap = map[string]map[string]string{
+	"t01": {
+		"101": consvar.RegisterActiveEmailTemplate,
+		"110": consvar.VideoShareEmailTemplateCN,
+	},
+}
+
 func main() {
 	scoreMap := make(map[string]int, 8)
 	scoreMap["张三"] = 90
