@@ -1,6 +1,6 @@
 https://www.atlassian.com/git/tutorials/saving-changes/git-stash
 
-git stash 只作用于工作目录和暂存区，不会影响已经commit的，执行stash命令后所有更改将会消失，将stash pop后如果存在冲突，不会提示解决冲突，而是会提醒你先把当前未commit的修改另存或者commit
+git stash 只作用于工作目录和暂存区，不会影响已经commit的，执行stash命令后所有更改将会消失
 ```shell
 # 新增stash, -u: stash untracked files   -a: stash ignored files
 $ git stash save "test-cmd-stash"
@@ -9,11 +9,13 @@ $ git stash list
 
 # 将指定stash删除，并将对应修改应用到当前的工作目录下,默认是第一个
 $ git stash pop
+
 # 应用指定的的stash, 但并不删除
 $ git stash apply
 
 # 移除指定的stash
 $ git stash drop stash@{0}
+
 # 删除所有缓存的stash
 git stash clear
 
@@ -24,7 +26,17 @@ $ git stash show
 $ git stash branch branch_name stash@{1}
 ```
 
-git stash temporarily shelves (or stashes) changes you've made to your working copy so you can work on something else, and then come back and re-apply them later on. Stashing is handy if you need to quickly switch context and work on something else, but you're mid-way through a code change and aren't quite ready to commit.
+
+
+## 冲突时
+git stash pop其实在内部是分成两个命令来执行的：
+```sh
+git stash apply #应用最新的一个贮藏
+git stash drop  #删除新的一个贮藏
+```
+如果apply时遇到了冲突，解决冲突、提交后会发现stash并没有被删掉，这是因为冲突导致了命令的执行失败，所以就没有继续执行drop了。
+
+
 
 ## Stashing untracked or ignored files
 
@@ -81,7 +93,6 @@ $ git stash pop stash@{2}
 
 
 ## Partial stashes
-
 You can also choose to stash just a single file, a collection of files, or individual changes from within files. If you pass the `-p` option (or `--patch`) to `git stash`, it will iterate through each changed "hunk" in your working copy and ask whether you wish to stash it:
 
 ```shell
