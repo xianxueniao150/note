@@ -114,7 +114,7 @@ minikube start --image-repository registry.cn-hangzhou.aliyuncs.com/google_conta
 -v 详细输出，包含请求和响应的首部
 
 添加json
-curl -X POST -H "Content-Type:application/json" --data '{"dmac": "00:0C:29:EA:39:70"}' https://cms-api-qa.vvork.net/audit/callback
+curl -X POST -H "Content-Type:application/json" --data '{"dmac": "00:0C:29:EA:39:70"}' https://
 
 ## grep
 

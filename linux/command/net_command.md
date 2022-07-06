@@ -95,7 +95,7 @@ https://curl.se/docs/manual.html
  curl http://127.0.0.1:8080/login?name=admin&passwd=12345678
  
 #添加json
-curl -X POST -H "Content-Type:application/json" --data '{"dmac": "00:0C:29:EA:39:70"}' https://cms-api-qa.vvork.net/audit/callback
+curl -X POST -H "Content-Type:application/json" --data '{"dmac": "00:0C:29:EA:39:70"}' https://
 
 #添加表单
 curl --data "birthyear=1905&press=%20OK%20"  http://www.example.com/when.cgi
